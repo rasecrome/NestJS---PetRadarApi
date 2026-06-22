@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Base de Datos PostgreSQL con PostGIS (requerido para ST_DWithin)
+  db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: petradar_db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "${DB_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - petradar_network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: petradar_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - petradar_network
+
+  # API NestJS
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: petradar_api
+    ports:
+      - "${PORT}:3000"
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      APPINSIGHTS_CONNECTION_STRING: ${APPINSIGHTS_CONNECTION_STRING}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - petradar_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  petradar_network:
+    driver: bridge
