@@ -10,6 +10,7 @@ export const envs = {
   DB_PASSWORD: env.get('DB_PASSWORD').required().asString(),
   REDIS_HOST: env.get('REDIS_HOST').required().asString(),
   REDIS_PORT: env.get('REDIS_PORT').required().asPortNumber(),
+  REDIS_PASSWORD: env.get('REDIS_PASSWORD').default('').asString(),
   MAILER_EMAIL: env.get('MAILER_EMAIL').default('').asString(),
   MAILER_PASSWORD: env.get('MAILER_PASSWORD').default('').asString(),
   MAILER_SERVICE: env.get('MAILER_SERVICE').default('').asString(),

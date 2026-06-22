@@ -5,7 +5,6 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { PetSpecies } from '../enums/pet-species.enum';
-import type { Point } from 'typeorm';
 
 @Entity('lost_pets')
 export class LostPet {
@@ -24,8 +23,11 @@ export class LostPet {
   @Column()
   ownerContact!: string;
 
-  @Column({ type: 'geometry', spatialFeatureType: 'Point', srid: 4326 })
-  location!: Point;
+  @Column({ type: 'double precision' })
+  latitude!: number;
+
+  @Column({ type: 'double precision' })
+  longitude!: number;
 
   @Column({ default: true })
   isActive!: boolean;

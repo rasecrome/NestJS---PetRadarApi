@@ -7,7 +7,8 @@ export class CacheService {
 
 private readonly redis = new Redis({
     host: envs.REDIS_HOST,
-    port: envs.REDIS_PORT
+    port: envs.REDIS_PORT,
+    password: envs.REDIS_PASSWORD || undefined,
   });
 
   async set(key:string,value:any){

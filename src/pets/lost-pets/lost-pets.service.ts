@@ -50,10 +50,8 @@ export class LostPetsService {
       species: dto.species,
       description: dto.description,
       ownerContact: dto.ownerContact,
-      location: {
-        type: 'Point',
-        coordinates: [dto.lon, dto.lat],
-      },
+      latitude: dto.lat,
+      longitude: dto.lon,
       isActive: true,
     });
 

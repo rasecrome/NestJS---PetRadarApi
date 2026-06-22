@@ -10,7 +10,7 @@ import { EmailService } from 'src/email/email.service';
 import { envs } from 'src/config/envs';
 
 const CACHE_KEY_FOUND_PETS = 'found-pets:all';
-const SEARCH_RADIUS_METERS = 500;
+const SEARCH_RADIUS_KM = 0.5;
 
 @Injectable()
 export class FoundPetsService {
@@ -58,10 +58,8 @@ export class FoundPetsService {
       description: dto.description,
       species: dto.species,
       reporterContact: dto.reporterContact,
-      location: {
-        type: 'Point',
-        coordinates: [dto.lon, dto.lat],
-      },
+      latitude: dto.lat,
+      longitude: dto.lon,
     });
 
     const savedFoundPet = await this.foundPetRepository.save(newFoundPet);
@@ -72,19 +70,23 @@ export class FoundPetsService {
     await this.cacheService.delete(CACHE_KEY_FOUND_PETS);
 
     logger.info(
-      `[FoundPetsService] Buscando mascotas perdidas activas en un radio de ${SEARCH_RADIUS_METERS}m...`,
+      `[FoundPetsService] Buscando mascotas perdidas activas cercanas...`,
     );
+
+    // Búsqueda por proximidad usando fórmula de Haversine simplificada
+    // Aproximación: 1 grado ≈ 111km
+    const degreeRadius = SEARCH_RADIUS_KM / 111;
 
     const nearbyLostPets = await this.lostPetRepository
       .createQueryBuilder('lost_pet')
       .where('lost_pet.isActive = :isActive', { isActive: true })
       .andWhere(
-        `ST_DWithin(
-          lost_pet.location::geography,
-          ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography,
-          :radius
-        )`,
-        { lat: dto.lat, lon: dto.lon, radius: SEARCH_RADIUS_METERS },
+        `lost_pet.latitude BETWEEN :minLat AND :maxLat`,
+        { minLat: dto.lat - degreeRadius, maxLat: dto.lat + degreeRadius },
+      )
+      .andWhere(
+        `lost_pet.longitude BETWEEN :minLon AND :maxLon`,
+        { minLon: dto.lon - degreeRadius, maxLon: dto.lon + degreeRadius },
       )
       .getMany();
 
@@ -94,10 +96,8 @@ export class FoundPetsService {
 
     // Enviar correos
     for (const lostPet of nearbyLostPets) {
-      const lostLon = lostPet.location.coordinates[0];
-      const lostLat = lostPet.location.coordinates[1];
       const mapboxToken = envs.MAPBOX_TOKEN;
-      const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-l+FF0000(${lostLon},${lostLat}),pin-s-s+0000FF(${dto.lon},${dto.lat})/auto/600x300@2x?access_token=${mapboxToken}`;
+      const mapUrl = `https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/pin-s-l+FF0000(${lostPet.longitude},${lostPet.latitude}),pin-s-s+0000FF(${dto.lon},${dto.lat})/auto/600x300@2x?access_token=${mapboxToken}`;
 
       await this.emailService.sendEmail({
         to: lostPet.ownerContact,
