@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Base de Datos PostgreSQL con PostGIS (requerido para ST_DWithin)
   db:
     image: postgis/postgis:16-3.4-alpine
     container_name: petradar_db
@@ -52,7 +51,6 @@ services:
       DB_PORT: 5432
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-      APPINSIGHTS_CONNECTION_STRING: ${APPINSIGHTS_CONNECTION_STRING}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:
